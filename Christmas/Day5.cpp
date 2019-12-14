@@ -17,7 +17,7 @@ namespace Day5Part1
 	enum class ParamMode
 	{
 		Positional = 0,
-		Immediate = 1
+		Immediate = 1,
 	};
 
 	struct Instruction
@@ -27,11 +27,11 @@ namespace Day5Part1
 	};
 
 	Instruction
-		getInstruction(int n)
+	getInstruction(long long n)
 	{
 		Instruction result;
 
-		int rawOpcode = n % 100;
+		long long rawOpcode = n % 100;
 		//TODO: Do we throw if the input ints don't correspond to values in the enums?
 		result.code = static_cast<Opcode>(rawOpcode);
 		n = n / 100;
@@ -47,8 +47,8 @@ namespace Day5Part1
 		return result;
 	}
 
-	int
-		getInputParam(vector<int>& intCode, int index, ParamMode mode)
+	long long
+	getInputParam(vector<long long>& intCode, int index, ParamMode mode)
 	{
 		if (mode == ParamMode::Positional)
 		{
@@ -63,10 +63,10 @@ namespace Day5Part1
 		//TODO: throw unknown param mode
 	}
 
-	queue<int>
-		runProgram(vector<int>& intCode, queue<int> inputs)
+	auto
+	runProgram(vector<long long>& intCode, queue<long long> inputs)
 	{
-		queue<int> output;
+		queue<long long> output;
 
 		for (int pos = 0; pos < intCode.size();)
 		{
@@ -124,11 +124,11 @@ namespace Day5Part1
 };
 
 Day5Part2::Instruction
-Day5Part2::getInstruction(int n)
+Day5Part2::getInstruction(long long n)
 {
 	Instruction result;
 
-	int rawOpcode = n % 100;
+	long long rawOpcode = n % 100;
 	//TODO: Do we throw if the input ints don't correspond to values in the enums?
 	result.code = static_cast<Opcode>(rawOpcode);
 	n = n / 100;
@@ -144,30 +144,57 @@ Day5Part2::getInstruction(int n)
 	return result;
 }
 
-int
-Day5Part2::getInputParam(vector<int>& intCode, int index, ParamMode mode)
+long long
+Day5Part2::setOutputParam(Intcode& intCode, int index, ParamMode mode, long long relativeBase, long long val)
+{
+	long long destPos = -1;
+
+	if (mode == ParamMode::Positional)
+	{
+		destPos = intCode.at(index);
+	}
+
+	if (mode == ParamMode::Relative)
+	{
+		destPos = intCode.at(index) + relativeBase;
+	}
+
+	intCode.set(destPos, val);
+	return destPos;
+
+	//TODO: throw unknown param mode
+}
+
+long long
+Day5Part2::getInputParam(Intcode& intCode, int index, ParamMode mode, long long relativeBase)
 {
 	if (mode == ParamMode::Positional)
 	{
-		return intCode[intCode[index]];
+		return intCode.at(intCode.at(index));
 	}
 
 	if (mode == ParamMode::Immediate)
 	{
-		return intCode[index];
+		return intCode.at(index);
+	}
+
+	if (mode == ParamMode::Relative)
+	{
+		return intCode.at(intCode.at(index) + relativeBase);
 	}
 
 	//TODO: throw unknown param mode
 }
 
-pair<queue<int>, Day5Part2::Opcode>
-Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput)
+pair<queue<long long>, Day5Part2::Opcode>
+Day5Part2::runProgram(Intcode intCode, queue<long long> inputs, bool exitOnOutput)
 {
-	queue<int> output;
+	queue<long long> output;
+	long long relativeBase = 0;
 
 	for (int pos = 0; pos < intCode.size();)
 	{
-		auto currentInstruction = getInstruction(intCode[pos]);
+		auto currentInstruction = getInstruction(intCode.at(pos));
 
 		switch (currentInstruction.code)
 		{
@@ -175,22 +202,31 @@ Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput
 		{
 			return make_pair(output, Opcode::Exit);
 		}
+		case Opcode::RelativeBaseOffset:
+		{
+			//TODO: We pass intCode and currentRelativeBase too repetitively, use std::bind or lamda
+			auto newRelativeBase = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			relativeBase += newRelativeBase;
+
+			pos += 2;
+			break;
+		}
 		case Opcode::Addition:
 		{
-			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
-			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1]);
-			auto resultPos = intCode[pos + 3];
-			intCode[resultPos] = firstVal + secondVal;
+			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1], relativeBase);
+
+			auto resultPos = setOutputParam(intCode, pos + 3, currentInstruction.paramModes[2], relativeBase, firstVal + secondVal);
 
 			if (resultPos != pos) pos += 4;
 			break;
 		}
 		case Opcode::Multiplication:
 		{
-			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
-			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1]);
-			auto resultPos = intCode[pos + 3];
-			intCode[resultPos] = firstVal * secondVal;
+			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1], relativeBase);
+
+			auto resultPos = setOutputParam(intCode, pos + 3, currentInstruction.paramModes[2], relativeBase, firstVal * secondVal);
 
 			if (resultPos != pos) pos += 4;
 			break;
@@ -201,15 +237,14 @@ Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput
 			auto currentInput = inputs.front();
 			inputs.pop();
 
-			auto destPos = intCode[pos + 1];
-			intCode[destPos] = currentInput;
+			auto destPos = setOutputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase, currentInput);
 
 			if (destPos != pos) pos += 2;
 			break;
 		}
 		case Opcode::Output:
 		{
-			auto val = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
+			auto val = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
 			output.push(val);
 
 			if (exitOnOutput) return make_pair(output, Opcode::Output);
@@ -219,8 +254,8 @@ Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput
 		}
 		case Opcode::JumpIfTrue:
 		{
-			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
-			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1]);
+			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1], relativeBase);
 
 			if (firstVal != 0)
 			{
@@ -235,8 +270,8 @@ Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput
 		}
 		case Opcode::JumpIfFalse:
 		{
-			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
-			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1]);
+			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1], relativeBase);
 
 			if (firstVal == 0)
 			{
@@ -251,17 +286,17 @@ Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput
 		}
 		case Opcode::LessThan:
 		{
-			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
-			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1]);
-			auto resultPos = intCode[pos + 3];
-
+			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1], relativeBase);
+			
+			long long resultPos;
 			if (firstVal < secondVal)
 			{
-				intCode[resultPos] = 1;
+				resultPos = setOutputParam(intCode, pos + 3, currentInstruction.paramModes[2], relativeBase, 1);
 			}
 			else
 			{
-				intCode[resultPos] = 0;
+				resultPos = setOutputParam(intCode, pos + 3, currentInstruction.paramModes[2], relativeBase, 0);
 			}
 
 			if (resultPos != pos) pos += 4;
@@ -269,17 +304,17 @@ Day5Part2::runProgram(vector<int>& intCode, queue<int> inputs, bool exitOnOutput
 		}
 		case Opcode::Equals:
 		{
-			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0]);
-			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1]);
-			auto resultPos = intCode[pos + 3];
-
+			auto firstVal = getInputParam(intCode, pos + 1, currentInstruction.paramModes[0], relativeBase);
+			auto secondVal = getInputParam(intCode, pos + 2, currentInstruction.paramModes[1], relativeBase);
+			
+			long long resultPos;
 			if (firstVal == secondVal)
 			{
-				intCode[resultPos] = 1;
+				resultPos = setOutputParam(intCode, pos + 3, currentInstruction.paramModes[2], relativeBase, 1);
 			}
 			else
 			{
-				intCode[resultPos] = 0;
+				resultPos = setOutputParam(intCode, pos + 3, currentInstruction.paramModes[2], relativeBase, 0);
 			}
 
 			if (resultPos != pos) pos += 4;

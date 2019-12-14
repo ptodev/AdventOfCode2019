@@ -42,9 +42,9 @@ Part1(vector<char> encodedImage, int width, int height)
         layers |
         ranges::views::transform(
             [](auto layer)
-    {
-        return countDigitInLayer(layer, 0);
-    }) |
+            {
+                return countDigitInLayer(layer, 0);
+            }) |
         ranges::views::enumerate;
 
     auto layerIdWithFewestZeros = ranges::accumulate(

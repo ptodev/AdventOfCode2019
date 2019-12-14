@@ -4,11 +4,11 @@
 using namespace std;
 
 int
-runAmplifiers(vector<int>& intCode, vector<int> phaseSeq, int signal)
+runAmplifiers(vector<long long>& intCode, vector<long long> phaseSeq, int signal)
 {
 	for (const auto& phase : phaseSeq)
 	{
-		queue<int> inputs;
+		queue<long long> inputs;
 		inputs.push(phase);
 		inputs.push(signal);
 
@@ -19,16 +19,16 @@ runAmplifiers(vector<int>& intCode, vector<int> phaseSeq, int signal)
 }
 
 int
-runAmplifiersInFeedbackLoop(vector<int>& intCode, vector<int> phaseSeq, int signal)
+runAmplifiersInFeedbackLoop(vector<long long>& intCode, vector<long long> phaseSeq, long long signal)
 {
-	optional<int> lastSignalFromLastAmplifier;
+	optional<long long> lastSignalFromLastAmplifier;
 	while (true)
 	{
 		for (int i=0; i<phaseSeq.size(); ++i)
 		{
 			const auto& phase = phaseSeq[i];
 		
-			queue<int> inputs;
+			queue<long long> inputs;
 			inputs.push(phase);
 			inputs.push(signal);
 
@@ -52,11 +52,11 @@ runAmplifiersInFeedbackLoop(vector<int>& intCode, vector<int> phaseSeq, int sign
 }
 
 int
-Part1(vector<int> intCode, int signal)
+Part1(vector<long long> intCode, int signal)
 {
-	auto phaseSeq = vector<int>{ 0, 1, 2, 3, 4 };
+	auto phaseSeq = vector<long long>{ 0, 1, 2, 3, 4 };
 
-	vector<int> results;
+	vector<long long> results;
 	do
 	{
 		auto currentResult = runAmplifiers(intCode, phaseSeq, signal);
@@ -67,11 +67,11 @@ Part1(vector<int> intCode, int signal)
 }
 
 int
-Part2(vector<int> intCode, int signal)
+Part2(vector<long long> intCode, int signal)
 {
-	auto phaseSeq = vector<int>{ 5, 6, 7, 8, 9 };
+	auto phaseSeq = vector<long long>{ 5, 6, 7, 8, 9 };
 
-	vector<int> results;
+	vector<long long> results;
 	do
 	{
 		auto currentResult = runAmplifiersInFeedbackLoop(intCode, phaseSeq, signal);
