@@ -88,6 +88,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TestDay10.cpp" />
     <ClCompile Include="TestDay6.cpp" />
     <ClCompile Include="TestDay1.cpp" />
     <ClCompile Include="TestDay2.cpp" />
